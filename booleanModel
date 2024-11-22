@@ -1,0 +1,80 @@
+import re
+from collections import defaultdict
+
+# Sample Documents (represented as a list of strings)
+documents = [
+    "The sky is blue and beautiful.",
+    "Love this blue and beautiful sky!",
+    "The quick brown fox jumps over the lazy dog.",
+    "A king's breakfast has sausages, ham, bacon, eggs, toast, and beans",
+    "I love green eggs, ham, sausages, and bacon!",
+    "The brown fox is quick and the blue dog is lazy!",
+    "The sky is very blue and the sky is very beautiful today",
+    "The dog is lazy but the brown fox is quick"
+]
+
+# Preprocess documents - Tokenize and create an inverted index
+def preprocess_documents(docs):
+    inverted_index = defaultdict(set)
+    for doc_id, doc in enumerate(docs):
+        # Tokenize words and lowercase them
+        words = re.findall(r'\w+', doc.lower())
+        for word in words:
+            inverted_index[word].add(doc_id)
+    return inverted_index
+
+# Create an inverted index from the documents
+inverted_index = preprocess_documents(documents)
+
+# Boolean Query Processing Function
+def boolean_query(query, inverted_index):
+    query = query.lower()
+    terms = re.findall(r'\w+', query)
+    operators = re.findall(r'\b(and|or|not)\b', query)
+    results = None
+
+    if not terms:
+        return set()
+
+    for idx, term in enumerate(terms):
+        if term not in inverted_index:
+            term_result = set()  # No matches for this term
+        else:
+            term_result = inverted_index[term]
+
+        if idx == 0:
+            results = term_result
+        else:
+            operator = operators[idx - 1] if idx - 1 < len(operators) else 'and'
+            if operator == 'and':
+                results = results.intersection(term_result)
+            elif operator == 'or':
+                results = results.union(term_result)
+            elif operator == 'not':
+                results = results.difference(term_result)
+
+    return results
+
+# Function to print documents matching the query
+def print_query_results(query, results, docs):
+    print(f"Results for query: '{query}'")
+    if results:
+        for doc_id in results:
+            print(f"- Doc {doc_id + 1}: {docs[doc_id]}")
+    else:
+        print("- No matching documents found.")
+    print()
+
+# Example Queries
+queries = [
+    "sky AND blue",
+    "quick OR lazy",
+    "beautiful AND NOT sky",
+    "green AND eggs",
+    "fox AND NOT lazy"
+]
+
+# Run queries and display results
+for query in queries:
+    result_docs = boolean_query(query, inverted_index)
+    print_query_results(query, result_docs, documents)
